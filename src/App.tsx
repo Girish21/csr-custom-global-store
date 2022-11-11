@@ -23,28 +23,22 @@ const initStore = <TState extends unknown>(initialState: TState) => {
 const store = initStore<Store>({ firstName: "", lastName: "" });
 
 const useStore = (select: (state: Store) => string) => {
-  const [, setState] = React.useState(select(store.getState()));
-
-  React.useEffect(() => {
-    return store.subscribe((state) => setState(select(state)));
-  }, []);
-
-  return store;
+  return React.useSyncExternalStore(store.subscribe, () =>
+    select(store.getState())
+  );
 };
 
 function Input({ name }: { name: Fields }) {
-  const { getState, setState } = useStore(
-    React.useCallback((state) => state[name], [name])
-  );
+  const value = useStore(React.useCallback((state) => state[name], [name]));
 
   return (
     <fieldset>
       <label htmlFor={name}>{name}</label>
       <input
         id={name}
-        value={getState()[name]}
+        value={value}
         onChange={(e) =>
-          setState({ ...getState(), [name]: e.currentTarget.value })
+          store.setState({ ...store.getState(), [name]: e.currentTarget.value })
         }
       />
     </fieldset>
