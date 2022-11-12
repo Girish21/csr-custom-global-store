@@ -1,53 +1,43 @@
 import * as React from "react";
 
-function Input({
-  name,
-  onChange,
-  value,
-}: {
-  name: Fields;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  return (
-    <fieldset>
-      <label htmlFor={name}>{name}</label>
-      <input id={name} value={value} onChange={onChange} />
-    </fieldset>
-  );
+function Cell({
+  count,
+  id,
+  onClick,
+}: Cell & { onClick: (id: number) => void }) {
+  return <button onClick={() => onClick(id)}>{count}</button>;
 }
 
 function App() {
-  const [state, setState] = React.useState<Store>({
-    firstName: "",
-    lastName: "",
-  });
+  const [state, setState] = React.useState<Cell[]>(
+    Array.from({ length: 80 }, (_, i) => i).map((i) => ({ count: 0, id: i }))
+  );
+
+  const clickHandler = React.useCallback((id: number) => {
+    setState((state) => {
+      const index = state.findIndex((cell) => cell.id === id);
+      return [
+        ...state.slice(0, index),
+        { ...state[index], count: state[index].count + 1 },
+        ...state.slice(index + 1),
+      ];
+    });
+  }, []);
 
   return (
     <main>
-      <Input
-        name="firstName"
-        value={state["firstName"]}
-        onChange={(e) =>
-          setState((state) => ({ ...state, firstName: e.target.value }))
-        }
-      />
-      <Input
-        name="lastName"
-        value={state["lastName"]}
-        onChange={(e) =>
-          setState((state) => ({ ...state, lastName: e.target.value }))
-        }
-      />
+      <div id="grid">
+        {state.map((cell) => (
+          <Cell key={cell.id} onClick={clickHandler} {...cell} />
+        ))}
+      </div>
     </main>
   );
 }
 
-type Store = {
-  firstName: string;
-  lastName: string;
+type Cell = {
+  id: number;
+  count: number;
 };
-
-type Fields = keyof Store;
 
 export default App;
