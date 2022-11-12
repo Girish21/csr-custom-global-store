@@ -1,34 +1,53 @@
 import * as React from "react";
 
-function Cell({
-  count,
-  id,
-  onClick,
-}: Cell & { onClick: (id: number) => void }) {
-  return <button onClick={() => onClick(id)}>{count}</button>;
+const initStore = <TState extends unknown>(initialState: TState) => {
+  let state = initialState;
+  const subscribers = new Set<(state: TState) => void>();
+
+  return {
+    getState: () => state,
+    setState: (newState: TState) => {
+      state = newState;
+      subscribers.forEach((subscriber) => subscriber(state));
+    },
+    subscribe: (subscriber: (state: TState) => void) => {
+      subscribers.add(subscriber);
+
+      return () => subscribers.delete(subscriber);
+    },
+  };
+};
+
+const store = initStore<Cell[]>(
+  Array.from({ length: 80 }, (_, i) => i).map((i) => ({ count: 0, id: i }))
+);
+
+const useStore = (select: (state: Cell[]) => Cell) =>
+  React.useSyncExternalStore(store.subscribe, () => select(store.getState()));
+
+function Cell({ id }: Cell) {
+  const { count } = useStore((state) => state.find((cell) => cell.id === id)!);
+
+  const clickHandler = () => {
+    let state = store.getState();
+    const index = state.findIndex((cell) => cell.id === id);
+    state = [
+      ...state.slice(0, index),
+      { ...state[index], count: count + 1 },
+      ...state.slice(index + 1),
+    ];
+    store.setState(state);
+  };
+
+  return <button onClick={clickHandler}>{count}</button>;
 }
 
 function App() {
-  const [state, setState] = React.useState<Cell[]>(
-    Array.from({ length: 80 }, (_, i) => i).map((i) => ({ count: 0, id: i }))
-  );
-
-  const clickHandler = React.useCallback((id: number) => {
-    setState((state) => {
-      const index = state.findIndex((cell) => cell.id === id);
-      return [
-        ...state.slice(0, index),
-        { ...state[index], count: state[index].count + 1 },
-        ...state.slice(index + 1),
-      ];
-    });
-  }, []);
-
   return (
     <main>
       <div id="grid">
-        {state.map((cell) => (
-          <Cell key={cell.id} onClick={clickHandler} {...cell} />
+        {store.getState().map((cell) => (
+          <Cell key={cell.id} {...cell} />
         ))}
       </div>
     </main>
