@@ -11,9 +11,20 @@ function Input({
 }) {
   return (
     <fieldset>
-      <label htmlFor={name}>{name}</label>
+      <label htmlFor={name}>{getLabel(name)}</label>
       <input id={name} value={value} onChange={onChange} />
     </fieldset>
+  );
+}
+
+function Name({ value, label }: { value: string; label: Fields }) {
+  return (
+    <div className="name">
+      <span>{getLabel(label)}: </span>
+      <span>
+        <b>{value}</b>
+      </span>
+    </div>
   );
 }
 
@@ -39,8 +50,19 @@ function App() {
           setState((state) => ({ ...state, lastName: e.target.value }))
         }
       />
+      <Name label="firstName" value={state.firstName} />
+      <Name label="lastName" value={state.lastName} />
     </main>
   );
+}
+
+function getLabel(label: string) {
+  const matches = /(\w+)(?=[A-Z])(.+)/g.exec(label);
+  if (!matches || matches.length < 3) {
+    return label;
+  }
+
+  return `${matches[1]} ${matches[2]}`;
 }
 
 type Store = {
