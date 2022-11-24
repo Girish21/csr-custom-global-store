@@ -1,23 +1,24 @@
 import * as React from "react";
 
-function Input({
-  name,
-  onChange,
-  value,
-}: {
-  name: Fields;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
+function Input({ name }: { name: Fields }) {
+  const value = useStore((state) => state[name]);
+
   return (
     <fieldset>
       <label htmlFor={name}>{getLabel(name)}</label>
-      <input id={name} value={value} onChange={onChange} />
+      <input
+        id={name}
+        value={value}
+        onChange={(e) => {
+          store.setState((state) => ({ ...state, [name]: e.target.value }));
+        }}
+      />
     </fieldset>
   );
 }
 
-function Name({ value, label }: { value: string; label: Fields }) {
+function Name({ label }: { label: Fields }) {
+  const value = useStore((state) => state[label]);
   return (
     <div className="name">
       <span>{getLabel(label)}: </span>
@@ -28,30 +29,52 @@ function Name({ value, label }: { value: string; label: Fields }) {
   );
 }
 
-function App() {
-  const [state, setState] = React.useState<Store>({
-    firstName: "",
-    lastName: "",
-  });
+function createStore(initialValue) {
+  let state = initialValue;
+  const subscribers = new Set();
 
+  return {
+    getState: () => state,
+    setState: (fn) => {
+      const nextState = fn(state);
+      state = nextState;
+      // @ts-ignore
+      subscribers.forEach((fn) => fn(state));
+    },
+    subcribe: (fn) => {
+      subscribers.add(fn);
+      console.log(subscribers);
+
+      return () => {
+        subscribers.delete(fn);
+      };
+    },
+  };
+}
+
+const store = createStore({
+  firstName: "Girish",
+  lastName: "V",
+});
+
+const useStore = (select) => {
+  return React.useSyncExternalStore(store.subcribe, () =>
+    select(store.getState())
+  );
+};
+
+function Header() {
+  return <h1>Header</h1>;
+}
+
+function App() {
   return (
     <main>
-      <Input
-        name="firstName"
-        value={state["firstName"]}
-        onChange={(e) =>
-          setState((state) => ({ ...state, firstName: e.target.value }))
-        }
-      />
-      <Input
-        name="lastName"
-        value={state["lastName"]}
-        onChange={(e) =>
-          setState((state) => ({ ...state, lastName: e.target.value }))
-        }
-      />
-      <Name label="firstName" value={state.firstName} />
-      <Name label="lastName" value={state.lastName} />
+      <Header />
+      <Input name="firstName" />
+      <Input name="lastName" />
+      <Name label="firstName" />
+      <Name label="lastName" />
     </main>
   );
 }
